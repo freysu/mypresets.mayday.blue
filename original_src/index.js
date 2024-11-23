@@ -82,6 +82,16 @@
   });
 })();
 
+// 捕获异步错误（Promise 拒绝）
+window.addEventListener('unhandledrejection', function (event) {
+  const errorDetails = {
+    reason: event.reason,
+    stack: event.reason ? event.reason.stack : 'No stack trace available',
+    timestamp: new Date().toISOString(),
+  };
+  my_debugger.showError('Unhandled Rejection', errorDetails);
+});
+
 async function highlightCodeInPreElements() {
   const extractLanguageFromUrl = (url) => {
     try {
@@ -903,7 +913,7 @@ function convertTime(string) {
  * generate-tool
  */
 
-import { parseBlob } from 'music-metadata';
+import { parseBlob, parseBuffer } from 'music-metadata';
 import sentimentAnalyzer from './sentiment-zh_cn_web.js';
 class AudioAnalyzer {
   constructor() {
@@ -1009,7 +1019,14 @@ class AudioAnalyzer {
 
   async getMetadata(filePath) {
     try {
-      const metadata = await parseBlob(filePath);
+      const metadata = {};
+      if (isIOSDevice) {
+        metadata = await parseBuffer((await filePath.bytes()) || (await blob.arrayBuffer()), {
+          mimeType: filePath.type,
+        });
+      } else {
+        metadata = await parseBlob(filePath);
+      }
       const bpm = metadata.common.bpm || 120;
       const format = metadata.format || {};
       const sampleRate = format.sampleRate || 44100;
@@ -1599,6 +1616,11 @@ class AudioAnalyzer {
       accent: [{ color: 'whi', per: 100 }],
     };
   }
+}
+
+// Helper function to check if the device is iOS
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
 // Color management class
@@ -2971,6 +2993,106 @@ document.addEventListener('DOMContentLoaded', async () => {
   elements.buttons.restart.addEventListener('click', handleRestart);
   elements.buttons.clear.addEventListener('click', handleClear);
 
+  let errorCount = 0;
+  const maxErrors = 5; // 设置最大错误处理次数
+  let lastErrorTime = 0;
+  const cooldownDuration = 5000; // 设置冷却时间为5秒
+
+  // Add error handling
+  window.addEventListener('error', (event) => {
+    if (errorCount >= maxErrors) {
+      showNotification(
+        '频繁错误',
+        `
+                <div class="alert alert-warning">
+                    <p><strong>频繁出现错误:</strong></p>
+                    <p>快跟作者反馈一下!:</p>
+                    <ul>
+                        <li>刷新页面</li>
+                        <li>检查您的输入数据</li>
+                        <li>请在几分钟后重试</li>
+                    </ul>
+                </div>
+            `,
+        {
+          type: 'warning',
+          size: 'large',
+          dismissible: true,
+          modal: true,
+          html: true,
+          buttons: [
+            {
+              text: '确定',
+              class: 'btn btn-primary',
+              onClick: () => location.reload(),
+              closeOnClick: true,
+            },
+          ],
+        },
+      );
+      return; // 达到最大错误处理次数，不再处理新的错误
+    }
+    errorCount++;
+
+    const currentTime = new Date().getTime();
+    if (currentTime - lastErrorTime < cooldownDuration) {
+      return; // 在冷却时间内，不再处理新的错误
+    }
+
+    lastErrorTime = currentTime;
+
+    // // 将错误信息记录到本地存储
+    // localStorage.setItem('errorLog', JSON.stringify(errorDetails));
+    // 或者将错误信息发送到服务器
+    // fetch()
+
+    const errorDetails = {
+      message: event.message,
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno,
+      error: event.error,
+      stack: event.error ? event.error.stack : 'No stack trace available',
+      timestamp: new Date().toISOString(),
+    };
+
+    showNotification(
+      '发生错误',
+      `
+              <div class="alert alert-danger">
+                  <p><strong>出错了:</strong></p>
+                  <p>${event.message}</p>
+                  <p>文件: ${event.filename}</p>
+                  <p>行号: ${event.lineno}, 列号: ${event.colno}</p>
+              </div>
+              <p>请尝试以下方法:</p>
+              <ul>
+                  <li>刷新页面</li>
+                  <li>检查您的输入数据</li>
+                  <li>请在几分钟后重试</li>
+              </ul>
+          `,
+      {
+        type: 'error',
+        size: 'large',
+        dismissible: true,
+        modal: true,
+        html: true,
+        buttons: [
+          {
+            text: '报告错误',
+            class: 'btn btn-danger',
+            onClick: () => showNotification('Report Error', `好了好了我知道了!`),
+            closeOnClick: true,
+          },
+        ],
+      },
+    );
+
+    my_debugger.showError('Error occurred:', errorDetails);
+    return handleStop();
+  });
+
   // Setup Mousetrap hotkeys
   const setupHotkeys = () => {
     // Space - Toggle Play/Pause
@@ -3063,35 +3185,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // elements.input.addEventListener('blur', () => {
   //     Mousetrap.unpause();
   // });
-
-  // Add error handling
-  window.addEventListener('error', (event) => {
-    showNotification(
-      '发生错误',
-      `
-              <div class="alert alert-danger">
-                  <p><strong>出错了:</strong></p>
-                  <p>${event.message}</p>
-              </div>
-              <p>请尝试以下方法:</p>
-              <ul>
-                  <li>刷新页面</li>
-                  <li>检查您的输入数据</li>
-                  <li>请在几分钟后重试</li>
-              </ul>
-          `,
-      {
-        type: 'error',
-        size: 'large',
-        dismissible: true,
-        modal: true,
-        html: true,
-        buttons: [],
-      },
-    );
-    my_debugger.showError('Error occurred:', event);
-    return handleStop();
-  });
 
   // Optional: Add sample data to textarea
   if (!elements.input.value) {
