@@ -1019,14 +1019,24 @@ class AudioAnalyzer {
 
   async getMetadata(filePath) {
     try {
-      const metadata = {};
-      if (isIOSDevice) {
-        metadata = await parseBuffer((await filePath.bytes()) || (await blob.arrayBuffer()), {
-          mimeType: filePath.type,
-        });
-      } else {
+      let metadata = {};
+      const isIOSDevice = /iPad|iPhone|iPod/.test(window.navigator.userAgent) && !window.MSStream;
+
+      try {
+        // 尝试非iOS设备的处理方法
         metadata = await parseBlob(filePath);
+      } catch (nonIOSDeviceError) {
+        if (isIOSDevice) {
+          // 如果是非iOS设备出错且当前设备是iOS设备，再尝试iOS设备的处理方法
+          metadata = await parseBuffer(await blob.arrayBuffer(), {
+            mimeType: filePath.type,
+          });
+        } else {
+          // 如果是非iOS设备出错且当前设备也不是iOS设备，抛出错误
+          throw nonIOSDeviceError;
+        }
       }
+
       const bpm = metadata.common.bpm || 120;
       const format = metadata.format || {};
       const sampleRate = format.sampleRate || 44100;
@@ -1616,11 +1626,6 @@ class AudioAnalyzer {
       accent: [{ color: 'whi', per: 100 }],
     };
   }
-}
-
-// Helper function to check if the device is iOS
-function isIOSDevice() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
 // Color management class
