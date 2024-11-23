@@ -3038,44 +3038,44 @@ document.addEventListener('DOMContentLoaded', async () => {
   showModalNotification(
     '公告📢 - 2024/11/23 15:20',
     `
-<div class="card shadow-sm mb-4">
-    <div class="card-header">
-        <h2 class="modal-title" id="announcementModalLabel">欢迎wmls来玩!</h2>
-    </div>
-    <div class="modal-body">
-        <h6>制作者<a
-            href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
-            target="_blank">（小红书@那一转眼只剩我🥕)</a>留言：</h6>
-        <p>本工具旨在帮助五月天演唱会的观众和组织者轻松生成荧光棒的控制代码，实现更加炫酷的灯光效果。通过简单的配置，你可以生成自定义的荧光棒控制代码，并在实时预览中查看基础效果。生成算法还在持续优化!本工具还在迭代!<br>感谢<a
-                href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
-                target="_blank">小红书@Diu🥕</a>大佬开发的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>小程序!
-        </p>
-
-        <h6>网站功能简介：</h6>
-        <ul>
-            <li><strong>生成工具🎨：</strong>提供你想做预设的音频文件,轻松配置荧光棒的颜色主题并生成 <strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong> 场控预设代码。</li>
-            <li><strong>实时预览👀：</strong>可以把生成的预设代码添加进来，实时展示荧光棒使用到的电脑颜色效果。</li>
-        </ul>
-
-        <h6>功能详细介绍：</h6>
-        <ul>
-            <li>生成工具🎨：请看<a href="#" class="pe-auto link-info link-underline-primary" onclick="document.querySelector(\'.nav-tabs .nav-link[data-bs-target=\\"#generate-tool\\"]\').click();">预设代码生成器<span class="visually-hidden">预设代码生成器</span></a>这个选项卡的使用指南</li>
-            <li>实时预览👀：请看<a href="#" class="pe-auto link-info link-underline-primary" onclick="document.querySelector(\'.nav-tabs .nav-link[data-bs-target=\\"#color-visualizer\\"]\').click();">预设可视化工具<span class="visually-hidden">预设可视化工具</span></a>这个选项卡的使用指南</li>
-        </ul>
-
-        <h6>重要细节：</h6>
-        <ul>
-            <li>生成的代码可以直接复制并粘贴到你的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>中。</li>
-            <li>支持导出和导入颜色主题配置，方便保存和分享创意。</li>
-        </ul>
-
-        <h6>演示视频链接：</h6>
-        <p>观看演示视频，了解更多使用技巧：<a href="https://example.com/demo-video" target="_blank">点击这里</a></p>
-
-        <h6>用户交流群信息：</h6>
-        <p>加入我们的用户交流群，与其他用户交流经验和技巧：<a href="https://example.com/user-group" target="_blank">点击这里</a></p>
-    </div>
-</div>
+      <div class="card shadow-sm mb-4">
+          <div class="card-header">
+              <h2 class="modal-title" id="announcementModalLabel">欢迎wmls来玩!</h2>
+          </div>
+          <div class="modal-body">
+              <h6>制作者<a
+                  href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
+                  target="_blank">（小红书@那一转眼只剩我🥕)</a>留言：</h6>
+              <p>本工具旨在帮助五月天演唱会的观众和组织者轻松生成荧光棒的控制代码，实现更加炫酷的灯光效果。通过简单的配置，你可以生成自定义的荧光棒控制代码，并在实时预览中查看基础效果。生成算法还在持续优化!本工具还在迭代!<br>感谢<a
+                      href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
+                      target="_blank">小红书@Diu🥕</a>大佬开发的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>小程序!
+              </p>
+  
+              <h6>网站功能简介：</h6>
+              <ul>
+                  <li><strong>生成工具🎨：</strong>提供你想做预设的音频文件,轻松配置荧光棒的颜色主题并生成 <strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong> 场控预设代码。</li>
+                  <li><strong>实时预览👀：</strong>可以把生成的预设代码添加进来，实时展示荧光棒使用到的电脑颜色效果。</li>
+              </ul>
+  
+              <h6>功能详细介绍：</h6>
+              <ul>
+                  <li>生成工具🎨：请看<strong>预设代码生成器</strong>选项卡的使用指南</li>
+                  <li>实时预览👀：请看<strong>预设可视化工具</strong>选项卡的使用指南</li>
+              </ul>
+  
+              <h6>重要细节：</h6>
+              <ul>
+                  <li>生成的代码可以直接复制并粘贴到你的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>中。</li>
+                  <li>支持导出和导入颜色主题配置，方便保存和分享创意。</li>
+              </ul>
+  
+              <h6>演示视频链接：</h6>
+              <p>观看演示视频，了解更多使用技巧：<a href="https://example.com/demo-video" target="_blank">点击这里</a></p>
+  
+              <h6>用户交流群信息：</h6>
+              <p>加入我们的用户交流群，与其他用户交流经验和技巧：<a href="https://example.com/user-group" target="_blank">点击这里</a></p>
+          </div>
+      </div>
     `,
     {
       type: 'info',
