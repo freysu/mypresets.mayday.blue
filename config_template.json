@@ -1,0 +1,27 @@
+{
+    "audioFilePath": "path/to/your/audio.mp3",
+    "lrcFilePath": "path/to/your/audio.lrc",
+    "outputFileName": "path/to/your/audio_timeline.txt",
+    "themeColors": {
+      "low": [
+        { "color": "whi", "per": "30%" },
+        { "color": "red", "per": "70%" }
+      ],
+      "mid": [
+        { "color": "yel", "per": "20%" },
+        { "color": "ora", "per": "30%" },
+        { "color": "sky", "per": "20%" },
+        { "color": "red", "per": "30%" }
+      ],
+      "high": [
+        { "color": "ora", "per": "40%" },
+        { "color": "red", "per": "60%" }
+      ],
+      "accent": [
+        { "color": "sky", "per": "50%" },
+        { "color": "yel", "per": "50%" }
+      ],
+      "base": "red"
+    }
+  }
+  
