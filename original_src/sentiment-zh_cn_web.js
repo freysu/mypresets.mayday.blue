@@ -4,164 +4,155 @@
 //   useDefault
 // } from 'https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/esm/segmentit.js'
 
-import assign from 'lodash.assign'
-import {
-  Segment,
-  useDefault
-} from 'segmentit'
+import assign from 'lodash.assign';
+// import { Segment, useDefault } from './segmentit.js'; // enhance feature : less size
 
 function defaultSetTimout() {
-  throw new Error('setTimeout has not been defined')
+  throw new Error('setTimeout has not been defined');
 }
 function defaultClearTimeout() {
-  throw new Error('clearTimeout has not been defined')
+  throw new Error('clearTimeout has not been defined');
 }
-var cachedSetTimeout = defaultSetTimout
-var cachedClearTimeout = defaultClearTimeout
-var globalContext
+var cachedSetTimeout = defaultSetTimout;
+var cachedClearTimeout = defaultClearTimeout;
+var globalContext;
 if (typeof window !== 'undefined') {
-  globalContext = window
+  globalContext = window;
 } else if (typeof self !== 'undefined') {
-  globalContext = self
+  globalContext = self;
 } else {
-  globalContext = {}
+  globalContext = {};
 }
 if (typeof globalContext.setTimeout === 'function') {
-  cachedSetTimeout = setTimeout
+  cachedSetTimeout = setTimeout;
 }
 if (typeof globalContext.clearTimeout === 'function') {
-  cachedClearTimeout = clearTimeout
+  cachedClearTimeout = clearTimeout;
 }
 function runTimeout(fun) {
   if (cachedSetTimeout === setTimeout) {
-    return setTimeout(fun, 0)
+    return setTimeout(fun, 0);
   }
-  if (
-    (cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) &&
-    setTimeout
-  ) {
-    cachedSetTimeout = setTimeout
-    return setTimeout(fun, 0)
+  if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+    cachedSetTimeout = setTimeout;
+    return setTimeout(fun, 0);
   }
   try {
-    return cachedSetTimeout(fun, 0)
+    return cachedSetTimeout(fun, 0);
   } catch (e) {
     try {
-      return cachedSetTimeout.call(null, fun, 0)
+      return cachedSetTimeout.call(null, fun, 0);
     } catch (e2) {
-      return cachedSetTimeout.call(this, fun, 0)
+      return cachedSetTimeout.call(this, fun, 0);
     }
   }
 }
 function runClearTimeout(marker) {
   if (cachedClearTimeout === clearTimeout) {
-    return clearTimeout(marker)
+    return clearTimeout(marker);
   }
-  if (
-    (cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) &&
-    clearTimeout
-  ) {
-    cachedClearTimeout = clearTimeout
-    return clearTimeout(marker)
+  if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+    cachedClearTimeout = clearTimeout;
+    return clearTimeout(marker);
   }
   try {
-    return cachedClearTimeout(marker)
+    return cachedClearTimeout(marker);
   } catch (e) {
     try {
-      return cachedClearTimeout.call(null, marker)
+      return cachedClearTimeout.call(null, marker);
     } catch (e2) {
-      return cachedClearTimeout.call(this, marker)
+      return cachedClearTimeout.call(this, marker);
     }
   }
 }
-var queue = []
-var draining = false
-var currentQueue
-var queueIndex = -1
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
 function cleanUpNextTick() {
   if (!draining || !currentQueue) {
-    return
+    return;
   }
-  draining = false
+  draining = false;
   if (currentQueue.length) {
-    queue = currentQueue.concat(queue)
+    queue = currentQueue.concat(queue);
   } else {
-    queueIndex = -1
+    queueIndex = -1;
   }
   if (queue.length) {
-    drainQueue()
+    drainQueue();
   }
 }
 function drainQueue() {
   if (draining) {
-    return
+    return;
   }
-  var timeout = runTimeout(cleanUpNextTick)
-  draining = true
-  var len = queue.length
+  var timeout = runTimeout(cleanUpNextTick);
+  draining = true;
+  var len = queue.length;
   while (len) {
-    currentQueue = queue
-    queue = []
+    currentQueue = queue;
+    queue = [];
     while (++queueIndex < len) {
       if (currentQueue) {
-        currentQueue[queueIndex].run()
+        currentQueue[queueIndex].run();
       }
     }
-    queueIndex = -1
-    len = queue.length
+    queueIndex = -1;
+    len = queue.length;
   }
-  currentQueue = null
-  draining = false
-  runClearTimeout(timeout)
+  currentQueue = null;
+  draining = false;
+  runClearTimeout(timeout);
 }
 function nextTick(fun) {
-  var args = new Array(arguments.length - 1)
+  var args = new Array(arguments.length - 1);
   if (arguments.length > 1) {
     for (var i = 1; i < arguments.length; i++) {
-      args[i - 1] = arguments[i]
+      args[i - 1] = arguments[i];
     }
   }
-  queue.push(new Item(fun, args))
+  queue.push(new Item(fun, args));
   if (queue.length === 1 && !draining) {
-    runTimeout(drainQueue)
+    runTimeout(drainQueue);
   }
 }
 function Item(fun, array) {
-  this.fun = fun
-  this.array = array
+  this.fun = fun;
+  this.array = array;
 }
 Item.prototype.run = function () {
-  this.fun.apply(null, this.array)
-}
-var title = 'browser'
-var platform = 'browser'
-var browser = true
-var argv = []
-var version = ''
-var versions = {}
-var release = {}
-var config = {}
+  this.fun.apply(null, this.array);
+};
+var title = 'browser';
+var platform = 'browser';
+var browser = true;
+var argv = [];
+var version = '';
+var versions = {};
+var release = {};
+var config = {};
 function noop() {}
-var on = noop
-var addListener = noop
-var once = noop
-var off = noop
-var removeListener = noop
-var removeAllListeners = noop
-var emit = noop
+var on = noop;
+var addListener = noop;
+var once = noop;
+var off = noop;
+var removeListener = noop;
+var removeAllListeners = noop;
+var emit = noop;
 function binding(name) {
-  throw new Error('process.binding is not supported')
+  throw new Error('process.binding is not supported');
 }
 function cwd() {
-  return '/'
+  return '/';
 }
 function chdir(dir) {
-  throw new Error('process.chdir is not supported')
+  throw new Error('process.chdir is not supported');
 }
 function umask() {
-  return 0
+  return 0;
 }
-var performance = globalContext.performance || {}
+var performance = globalContext.performance || {};
 var performanceNow =
   performance.now ||
   performance.mozNow ||
@@ -169,27 +160,27 @@ var performanceNow =
   performance.oNow ||
   performance.webkitNow ||
   function () {
-    return new Date().getTime()
-  }
+    return new Date().getTime();
+  };
 function hrtime(previousTimestamp) {
-  var clocktime = performanceNow.call(performance) * 1e-3
-  var seconds = Math.floor(clocktime)
-  var nanoseconds = Math.floor((clocktime % 1) * 1e9)
+  var clocktime = performanceNow.call(performance) * 1e-3;
+  var seconds = Math.floor(clocktime);
+  var nanoseconds = Math.floor((clocktime % 1) * 1e9);
   if (previousTimestamp) {
-    seconds = seconds - previousTimestamp[0]
-    nanoseconds = nanoseconds - previousTimestamp[1]
+    seconds = seconds - previousTimestamp[0];
+    nanoseconds = nanoseconds - previousTimestamp[1];
     if (nanoseconds < 0) {
-      seconds--
-      nanoseconds += 1e9
+      seconds--;
+      nanoseconds += 1e9;
     }
   }
-  return [seconds, nanoseconds]
+  return [seconds, nanoseconds];
 }
-var startTime = new Date()
+var startTime = new Date();
 function uptime() {
-  var currentTime = new Date()
-  var dif = currentTime - startTime
-  return dif / 1e3
+  var currentTime = new Date();
+  var dif = currentTime - startTime;
+  return dif / 1e3;
 }
 var process = {
   nextTick,
@@ -214,8 +205,8 @@ var process = {
   platform,
   release,
   config,
-  uptime
-}
+  uptime,
+};
 var require$$0 = {
   一句话: -2,
   一审宣判: -1,
@@ -1766,68 +1757,64 @@ var require$$0 = {
   黑鬼: -5,
   鼓励: 2,
   鼓掌: 2,
-  鼓舞人心: 3
-}
-var D_U_protection = [
-  '\u5988\u7684',
-  '\u662F\u7684',
-  '\u4ED6\u5988\u7684',
-  '\u4F60\u5988\u7684'
-]
+  鼓舞人心: 3,
+};
+var D_U_protection = ['\u5988\u7684', '\u662F\u7684', '\u4ED6\u5988\u7684', '\u4F60\u5988\u7684'];
 function getDefaultExportFromNamespaceIfNotNamed(n) {
-  return n &&
-    Object.prototype.hasOwnProperty.call(n, 'default') &&
-    Object.keys(n).length === 1
+  return n && Object.prototype.hasOwnProperty.call(n, 'default') && Object.keys(n).length === 1
     ? n['default']
-    : n
+    : n;
 }
-// var require$$0$1 =
-//   /* @__PURE__ */ getDefaultExportFromNamespaceIfNotNamed(segmentit$1)
-// var { Segment, useDefault } = require$$0$1
-console.log('Segment: ', Segment)
-var segmentit = useDefault(new Segment())
+// // var require$$0$1 =
+// //   /* @__PURE__ */ getDefaultExportFromNamespaceIfNotNamed(segmentit$1)
+// // var { Segment, useDefault } = require$$0$1
+// // console.log('Segment: ', Segment);
+
+// var segmentit = useDefault(new Segment()); //  // enhance feature : less size
+var segmentit = window.Segmentit ? window.Segmentit.useDefault(new Segmentit.Segment()) : null;
+if(!segmentit) throw new Error('Segmentit is not loaded');
 var tokenize = function (input) {
-  var seg_i = []
+  var seg_i = [];
   segmentit.doSegment(input).forEach((value) => {
-    seg_i.push(value.w)
-  })
-  var seg_o = []
+    seg_i.push(value.w);
+  });
+  var seg_o = [];
   for (var i in seg_i) {
-    var it = seg_i[i].replace(/[的得着了过]$/g, '')
+    var it = seg_i[i].replace(/[的得着了过]$/g, '');
     if (i >= 1) {
       if (D_U_protection.indexOf(seg_i[i - 1] + seg_i[i]) != -1) {
-        seg_o.pop()
-        seg_o.push(seg_i[i - 1] + seg_i[i])
+        seg_o.pop();
+        seg_o.push(seg_i[i - 1] + seg_i[i]);
       }
     }
-    if (D_U_protection.indexOf(seg_i[i]) != -1) seg_o.push(seg_i[i])
-    else if (it) seg_o.push(it)
+    if (D_U_protection.indexOf(seg_i[i]) != -1) seg_o.push(seg_i[i]);
+    else if (it) seg_o.push(it);
   }
-  return seg_o
-}
-var afinn = require$$0
+  return seg_o;
+};
+var afinn = require$$0;
 var lib = function (phrase, inject, callback) {
-  if (typeof phrase === 'undefined') phrase = ''
-  if (typeof inject === 'undefined') inject = null
-  if (typeof inject === 'function') callback = inject
-  if (typeof callback === 'undefined') callback = null
+  if (typeof phrase === 'undefined') phrase = '';
+  if (typeof inject === 'undefined') inject = null;
+  if (typeof inject === 'function') callback = inject;
+  if (typeof callback === 'undefined') callback = null;
   if (inject !== null) {
-    afinn = assign(afinn, inject)
+    afinn = assign(afinn, inject);
   }
   var tokens = tokenize(phrase),
     score = 0,
     words = [],
     positive = [],
-    negative = []
-  var len = tokens.length
+    negative = [];
+  var len = tokens.length;
   while (len--) {
-    var obj = tokens[len]
-    var item = afinn[obj]
-    if (!afinn.hasOwnProperty(obj)) continue
-    words.push(obj)
-    if (item > 0) positive.push(obj)
-    if (item < 0) negative.push(obj)
-    score += item
+    var obj = tokens[len];
+    var item = afinn[obj];
+    if (!afinn.hasOwnProperty(obj)) continue;
+    words.push(obj);
+    if (item > 0) positive.push(obj);
+    if (item < 0) negative.push(obj);
+    score += item;
   }
   var result = {
     score,
@@ -1835,11 +1822,11 @@ var lib = function (phrase, inject, callback) {
     tokens,
     words,
     positive,
-    negative
-  }
-  if (callback === null) return result
+    negative,
+  };
+  if (callback === null) return result;
   process.nextTick(function () {
-    callback(null, result)
-  })
-}
-export default lib
+    callback(null, result);
+  });
+};
+export default lib;
