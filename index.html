@@ -2,10 +2,9 @@
  * @Author: freysu
  * @Date: 2024-11-21 04:20:51
  * @LastEditors: freysu
- * @LastEditTime: 2024-11-23 23:59:26
+ * @LastEditTime: 2024-11-24 03:27:18
  * @Description: file content
 -->
-<!-- prettier-ignore -->
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
   <head>
@@ -16,7 +15,7 @@
     <meta name="author" content="FreySu" />
     <meta http-equiv="Content-Language" contect="zh-CN" />
     <meta http-equiv="windows-Target" contect="_top" />
-    <link rel="icon" type="image/x-icon" href="./assets/img/favicon.ico" />
+    <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico" />
     <title>Mayday.Blue 预设工具</title>
     <!-- Bootstrap 5 CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet" />
@@ -27,12 +26,8 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
       rel="stylesheet"
     />
-    <link
-      href="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-3-y/highlight.js/11.4.0/styles/atom-one-dark.min.css"
-      type="text/css"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="./css/style.min.css" />
+    <link href="css/atom-one-dark.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.min.css" />
   </head>
   <body>
     <div class="app-wrapper d-flex flex-column min-vh-100">
@@ -337,24 +332,24 @@
                             <li>
                               <!-- prettier-ignore -->
                               <pre><code class="language-json">
-{
-"themeColors": {
-"low": [{ "color": "whi", "per": "100%" }],
-"mid": [
-{ "color": "yel", "per": "30%" },
-{ "color": "ora", "per": "70%" }
-],
-"high": [
-{ "color": "ora", "per": "30%" },
-{ "color": "red", "per": "70%" }
-],
-"accent": [
-{ "color": "ora", "per": "30%" },
-{ "color": "red", "per": "70%" }
-],
-"base": "ora"
-}
-}
+    {
+      "themeColors": {
+        "low": [{ "color": "whi", "per": "100%" }],
+        "mid": [
+          { "color": "yel", "per": "30%" },
+          { "color": "ora", "per": "70%" }
+        ],
+        "high": [
+          { "color": "ora", "per": "30%" },
+          { "color": "red", "per": "70%" }
+        ],
+        "accent": [
+          { "color": "ora", "per": "30%" },
+          { "color": "red", "per": "70%" }
+        ],
+        "base": "ora"
+      }
+    }
   </code></pre>
                             </li>
                           </ul>
@@ -1104,17 +1099,8 @@
     </div>
     <!-- Bootstrap JS -->
     <script src="original_src/bootstrap.bundle.min.js" defer></script>
-    <script
-      src="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-3-y/mousetrap/1.6.5/mousetrap.min.js"
-      type="application/javascript"
-      crossorigin="anonymous"
-      defer
-    ></script>
-    <script
-      src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-3-y/highlight.js/11.4.0/highlight.min.js"
-      type="application/javascript"
-      crossorigin="anonymous"
-    ></script>
+    <script src="original_src/mousetrap.min.js" defer></script>
+    <script src="original_src/highlight.min.js" defer></script>
     <script
       src="https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.min.js"
       crossorigin="anonymous"

@@ -4,7 +4,6 @@
  * Licensed under the Creative Commons Attribution 3.0 Unported License.
  *  Enhanced Feature added by @FreySu
  */
-
 (() => {
   'use strict';
 
@@ -14,7 +13,7 @@
     if (storedTheme) {
       return storedTheme;
     }
-
+    localStorage.setItem('theme', 'auto');
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   };
 
@@ -914,7 +913,7 @@ function convertTime(string) {
  */
 
 import { parseBlob, parseBuffer } from 'music-metadata';
-import sentimentAnalyzer from './sentiment-zh_cn_web.js';
+import sentimentAnalyzer from './sentiment-zh_cn_web.min.js';
 class AudioAnalyzer {
   constructor() {
     this.state = {
@@ -3180,21 +3179,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   // Initialize hotkeys
-  setupHotkeys();
-
-  // // Disable hotkeys when typing in textarea
-  // elements.input.addEventListener('focus', () => {
-  //     Mousetrap.pause();
-  // });
-
-  // elements.input.addEventListener('blur', () => {
-  //     Mousetrap.unpause();
-  // });
-
-  // Optional: Add sample data to textarea
-  if (!elements.input.value) {
-    elements.input.value = '0,pin2\n500,pin2\n1000,sky3\n1500,pin4';
+  if (window.Mousetrap) {
+    setupHotkeys();
+  } else {
+    my_debugger.showError(
+      'Mousetrap not found. Hotkeys will not work. Please install it from npm.',
+    );
   }
+
+  // // Optional: Add sample data to textarea
+  // if (!elements.input.value) {
+  //   elements.input.value = '0,pin2\n500,pin2\n1000,sky3\n1500,pin4';
+  // }
 
   // Initial button states
   updateButtonStates();
@@ -3203,6 +3199,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isExpanded = elm.getAttribute('aria-expanded') === 'true';
     elm.setAttribute('aria-expanded', !isExpanded);
     elm.textContent = isExpanded ? '帮助 (收起)' : '帮助 (展开)';
+  }
+
+  if (window.hljs) {
+    await highlightCodeInPreElements();
+  } else {
+    my_debugger.showError('Highlight.js not found. Skipping code highlighting.');
   }
 
   showModalNotification(
@@ -3255,12 +3257,4 @@ document.addEventListener('DOMContentLoaded', async () => {
       dismissible: true,
     },
   );
-
-  // const toggleGuide = document.querySelectorAll('.toggleGuide');
-  // toggleGuide &&
-  //   toggleGuide.forEach((element) => {
-  //     element.addEventListener('click', (e) => toggleHelp(e.target));
-  //   });
-
-  window.hljs && (await highlightCodeInPreElements());
 });
