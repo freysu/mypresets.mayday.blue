@@ -2,7 +2,7 @@
  * @Author: freysu
  * @Date: 2024-11-21 04:20:51
  * @LastEditors: freysu
- * @LastEditTime: 2024-11-24 03:27:18
+ * @LastEditTime: 2024-11-25 12:18:01
  * @Description: file content
 -->
 <!DOCTYPE html>
@@ -20,12 +20,12 @@
     <!-- Bootstrap 5 CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet" />
     <!-- Material Icons -->
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" /> -->
     <!-- Google Fonts -->
-    <link
+    <!-- <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
       rel="stylesheet"
-    />
+    /> -->
     <link href="css/atom-one-dark.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/style.min.css" />
   </head>
@@ -58,31 +58,39 @@
                   预设代码可视化
                 </button>
               </li>
-              <li class="nav-item">
-                <div class="dropdown">
-                  <button
-                    class="btn btn-secondary dropdown-toggle"
-                    type="button"
-                    id="themeDropdown"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    主题模式
-                  </button>
-                  <ul class="dropdown-menu" aria-labelledby="themeDropdown">
-                    <li>
-                      <button class="dropdown-item" data-bs-theme-value="light">浅色模式</button>
-                    </li>
-                    <li>
-                      <button class="dropdown-item" data-bs-theme-value="dark">暗黑模式</button>
-                    </li>
-                    <li>
-                      <button class="dropdown-item" data-bs-theme-value="auto">自动模式</button>
-                    </li>
-                  </ul>
-                </div>
-              </li>
+              <li class="nav-item"></li>
             </ul>
+            <div class="dropdown">
+              <button
+                class="btn btn-secondary dropdown-toggle"
+                type="button"
+                id="themeDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                外观
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="themeDropdown">
+                <li>
+                  <button class="dropdown-item" data-bs-theme-value="light">
+                    <i class="material-icons">sunny</i>
+                    浅色
+                  </button>
+                </li>
+                <li>
+                  <button class="dropdown-item" data-bs-theme-value="dark">
+                    <i class="material-icons">nights_stay</i>
+                    暗黑
+                  </button>
+                </li>
+                <li>
+                  <button class="dropdown-item" data-bs-theme-value="auto">
+                    <i class="material-icons">brightness_auto</i>
+                    自动
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       </header>
@@ -471,15 +479,15 @@
                     <div class="card shadow-sm mb-4">
                       <div class="d-grid gap-2">
                         <button
-                          class="btn btn-outline-primary d-flex align-items-center justify-content-center"
+                          class="btn btn-primary d-flex align-items-center justify-content-center"
                           id="generate-btn"
                           data-bs-toggle="tooltip"
                           data-bs-placement="top"
-                          title="Tooltip on top"
+                          title="生成预设代码文本"
                           disabled
                         >
                           <i class="material-icons me-2">bolt</i>
-                          Generate
+                          生成预设代码文本
                         </button>
                       </div>
                     </div>
@@ -502,7 +510,7 @@
                         </h2>
                         <div class="text-end">
                           <button class="btn btn-outline-secondary" id="themeConfig_saveConfig">
-                            <i class="material-icons">save</i>
+                            <i class="material-icons" aria-hidden="true">save</i>
                             保存
                           </button>
                           <button class="btn btn-outline-secondary" id="themeConfig_exportConfig">
@@ -548,7 +556,7 @@
                               <div id="baseColorContainer"></div>
                             </div>
                             <!-- Dynamic Color Sections -->
-                            <div class="mb-3" id="colorSections"></div>
+                            <div class="mb-3" id="colorSections">动态颜色配置区正在加载中...</div>
                           </form>
                         </div>
                       </div>
@@ -796,7 +804,7 @@
                               type="file"
                               id="audioInput"
                               class="d-none"
-                              accept="audio/aac,audio/flac,audio/mp3,audio/wav,audio/ogg,audio/m4a"
+                              accept="audio/*"
                               aria-label="导入音频文件"
                               autocomplete="off"
                             />
@@ -897,9 +905,9 @@
                                 <span id="audioFileName" class="text-truncate">
                                   没有选择音频文件
                                 </span>
-                                <span id="audioDuration"></span>
                               </div>
                               <div class="position-relative">
+                                <div id="wavesurfer_color_preview"></div>
                                 <input
                                   type="range"
                                   class="form-range"
@@ -908,9 +916,8 @@
                                   max="100"
                                   value="0"
                                   step="0.1"
-                                  disabled
                                 />
-                                <div class="d-flex justify-content-left">
+                                <div class="d-flex justify-content-left" id="audioDuration">
                                   <span id="currentTime">00:00</span>
                                   /
                                   <span id="totalTime">00:00</span>
@@ -1029,10 +1036,10 @@
           <p>
             版权所有 © 2024
             <a
-              href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
+              href="https://www.xiaohongshu.com/user/profile/5c1610720000000005018c49"
               target="_blank"
             >
-              FreySu（小红书@那一转眼只剩我🥕)
+              小红书@那一转眼只剩我🥕
             </a>
           </p>
           <p>
@@ -1097,6 +1104,12 @@
         </div>
       </div>
     </div>
+    <script src="https://unpkg.com/wavesurfer.js" crossorigin="anonymous" defer></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"
+      crossorigin="anonymous"
+      defer
+    ></script>
     <!-- Bootstrap JS -->
     <script src="original_src/bootstrap.bundle.min.js" defer></script>
     <script src="original_src/mousetrap.min.js" defer></script>

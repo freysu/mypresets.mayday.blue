@@ -46,10 +46,11 @@
     });
 
     const activeItem = document.querySelector(`[data-bs-theme-value="${theme}"]`);
+    ``;
     activeItem.classList.add('active');
     activeItem.setAttribute('aria-pressed', 'true');
 
-    themeDropdown.textContent = `主题模式 (${theme})`;
+    // themeDropdown.textContent = `外观 (${theme})`;
 
     if (focus) {
       themeDropdown.focus();
@@ -208,6 +209,8 @@ if (!document.querySelector('.toast-container')) {
   );
 }
 
+let currentNotifications = []; // 当前显示的通知队列
+const maxNotifications = 3; // 最大允许同时显示的通知数量
 /**
  * Configuration object for notification icons and colors
  * @type {Object}
@@ -264,12 +267,40 @@ function showNotification(title, message, options = {}) {
 
   const config = { ...defaults, ...options };
 
-  // Handle modal notifications
-  if (config.modal) {
-    return showModalNotification(title, message, config);
+  // 如果当前通知数量超过最大值，移除最早的弹窗
+  if (currentNotifications.length >= maxNotifications) {
+    const oldestNotification = currentNotifications.shift();
+    if (oldestNotification) {
+      oldestNotification.hide();
+    }
   }
-  // Handle toast notifications
-  return showToastNotification(title, message, config);
+  // 处理模态框通知
+  if (config.modal) {
+    const modalInstance = showModalNotification(title, message, config);
+    if (modalInstance) {
+      currentNotifications.push(modalInstance);
+      modalInstance._element.addEventListener('hidden.bs.modal', () => {
+        const index = currentNotifications.indexOf(modalInstance);
+        if (index !== -1) {
+          currentNotifications.splice(index, 1);
+        }
+      });
+    }
+    return modalInstance;
+  }
+
+  // 处理吐司通知
+  const toastInstance = showToastNotification(title, message, config);
+  if (toastInstance) {
+    currentNotifications.push(toastInstance);
+    toastInstance._element.addEventListener('hidden.bs.toast', () => {
+      const index = currentNotifications.indexOf(toastInstance);
+      if (index !== -1) {
+        currentNotifications.splice(index, 1);
+      }
+    });
+  }
+  return toastInstance;
 }
 
 /**
@@ -491,7 +522,7 @@ class ThemeConfigForm {
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="text-capitalize mb-0">${section} Colors</h6>
                 <button type="button" class="btn btn-sm btn-outline-primary add-color-btn" data-section="${section}">
-                    <i class="material-icons">add</i> 添加颜色
+                    <i class="material-icons">add</i>➕
                 </button>
             </div>
             <div id="${section}Colors" class="color-items">
@@ -531,10 +562,10 @@ class ThemeConfigForm {
                 </div>
             </div>
             <div class="col-auto">
-                <button type="button" class="btn btn-sm btn-outline-danger remove-color-btn"
+                <button type="button" class="btn btn-xs btn-outline-danger remove-color-btn"
                         data-section="${section}"
                         data-index="${index}">
-                    <i class="material-icons">删除</i>
+                    <i class="material-icons">delete</i>➖
                 </button>
             </div>
         `;
@@ -691,19 +722,12 @@ class ThemeConfigForm {
     if (!isValid) return;
 
     const configString = JSON.stringify(this.themeConfig, null, 2);
-    const blob = new Blob([configString], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
+    const blob = new Blob([configString], { type: 'application/json' });
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'theme-config.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // 使用 FileSaver.js 的 saveAs 来直接保存文件
+    window.saveAs(blob, 'theme-config.json');
 
-    /////////
-
+    // 显示导出成功通知
     showNotification('已导出！📤', '你的颜色设置已成功导出', {
       type: 'success',
       duration: 3000,
@@ -842,9 +866,19 @@ class ThemeConfigForm {
  * @return {<Array>{string}} ['length', '03:06']
  */
 
-function extractInfo(data) {
-  const info = data.trim().slice(1, -1); // remove brackets: length: 03:06
-  return info.split(': ');
+function extractInfo(lrcData) {
+  const tags = {};
+  const lines = lrcData.split(/\r\n|\n|\r/);
+
+  lines.forEach((line) => {
+    const match = line.match(/\[(\w+):(.+)\]/);
+    if (match) {
+      const [_, key, value] = match;
+      tags[key] = value.trim();
+    }
+  });
+
+  return tags;
 }
 
 function lrcParser(data) {
@@ -867,11 +901,12 @@ function lrcParser(data) {
     infos.push(lines[i]);
   }
 
-  infos.reduce((result, info) => {
-    const [key, value] = extractInfo(info);
-    result[key] = value;
-    return result;
-  }, result);
+  // infos.reduce((result, info) => {
+  //   const [key, value] = extractInfo(info);
+  //   result[key] = value;
+  //   return result;
+  // }, result);
+  result.infos = extractInfo(data);
 
   lines.splice(0, infos.length); // remove all info lines
   const qualified = new RegExp(startAndText.source + '|' + timeEnd.source);
@@ -959,7 +994,8 @@ class AudioAnalyzer {
 
     document.getElementById('copy-btn').addEventListener('click', async () => {
       try {
-        await navigator.clipboard.writeText(document.getElementById('output-result').value);
+        const content = document.getElementById('output-result').value;
+        await navigator.clipboard.writeText(content);
         showNotification('耶！', '📋 已复制到剪贴板！', {
           type: 'success',
           duration: 3000,
@@ -976,32 +1012,41 @@ class AudioAnalyzer {
     document.getElementById('download-btn').addEventListener('click', () => {
       try {
         const content = document.getElementById('output-result').value;
-        if (!content.trim()) {
+        if (!content.trim() || !content.replace(/\s/g, '')) {
           showNotification('检查一下！💭', '还没有内容可以下载。先添加一些内容吧！', {
             type: 'warning',
             duration: 4000,
           });
           return;
         }
-        const blob = new Blob([content], {
-          type: 'text/plain',
-        });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `converted-output.txt`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        if (Timeline.parse(content).errors.length) {
+          showNotification(
+            '哎哟! 🤔',
+            '预设代码无效，请检查内容!\n' + Timeline.parse(content).errors,
+            {
+              type: 'error',
+              duration: 5000,
+            },
+          );
+          return;
+        }
 
-        // Add success notification
+        // 转义用户输入，防止XSS攻击
+        const escapedContent = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // 使用 FileSaver.js 的 saveAs 方法来保存文件
+        const blob = new Blob([escapedContent], { type: 'text/plain;charset=utf-8' });
+
+        // 文件保存
+        window.saveAs(blob, 'converted-output.txt');
+
+        // 添加成功通知
         showNotification('开始下载！✨', '你的文件正在下载中', {
           type: 'success',
           duration: 3000,
         });
       } catch (error) {
-        // Add error notification if something goes wrong
+        // 添加错误通知
         showNotification(
           'Oops! 🤔',
           'There was a problem downloading your file. Please try again.',
@@ -1011,30 +1056,23 @@ class AudioAnalyzer {
             dismissible: true,
           },
         );
-        my_debugger.showError('Download error:', error);
+
+        // 确保my_debugger.showError存在
+        if (typeof my_debugger !== 'undefined' && typeof my_debugger.showError === 'function') {
+          my_debugger.showError('Download error:', error);
+        } else {
+          console.error('Download error:', error);
+        }
       }
     });
   }
 
   async getMetadata(filePath) {
+    console.log('filePath: ', filePath);
     try {
       let metadata = {};
-      const isIOSDevice = /iPad|iPhone|iPod/.test(window.navigator.userAgent) && !window.MSStream;
-
-      try {
-        // 尝试非iOS设备的处理方法
-        metadata = await parseBlob(filePath);
-      } catch (nonIOSDeviceError) {
-        if (isIOSDevice) {
-          // 如果是非iOS设备出错且当前设备是iOS设备，再尝试iOS设备的处理方法
-          metadata = await parseBuffer(await blob.arrayBuffer(), {
-            mimeType: filePath.type,
-          });
-        } else {
-          // 如果是非iOS设备出错且当前设备也不是iOS设备，抛出错误
-          throw nonIOSDeviceError;
-        }
-      }
+      // const isIOSDevice = /iPad|iPhone|iPod/.test(window.navigator.userAgent) && !window.MSStream;
+      metadata = await parseBlob(filePath);
 
       const bpm = metadata.common.bpm || 120;
       const format = metadata.format || {};
@@ -1053,12 +1091,14 @@ class AudioAnalyzer {
 
       return { bpm, sampleRate, bitrate, duration };
     } catch (error) {
+      // let browserInfo = await window.browser.getInfo();
       // Error notification for failed analysis
       showNotification('音频解析问题 🎧', '无法解析这个音频文件。请尝试不同的格式。', {
         type: 'error',
         duration: 5000,
         dismissible: true,
       });
+      // console.error(JSON.stringify(browserInfo, null, 2));
       my_debugger.showError(`Error parsing metadata for file ${filePath}: ${error}`);
       throw error;
     }
@@ -1097,6 +1137,7 @@ class AudioAnalyzer {
       const arrayBuffer = await file.arrayBuffer();
       this.state.audioBuffer = await this.state.audioContext.decodeAudioData(arrayBuffer);
       this.state.metadata = await this.getMetadata(file);
+      console.log('file: ', file);
 
       // Update UI
       this.updateFileInfo('audioFileInfo', file, this.state.metadata);
@@ -2039,10 +2080,7 @@ class Timeline {
   clear() {
     this.sequence = [];
   }
-}
 
-// Update the TimelineParser class
-class TimelineParser {
   static validate(line, index) {
     if (typeof line !== 'string') {
       return { errors: [`Line ${index + 1}: Invalid input type`] };
@@ -2087,7 +2125,7 @@ class TimelineParser {
     const frames = [];
 
     lines.forEach((line, index) => {
-      const result = this.validate(line, index);
+      const result = Timeline.validate(line, index);
       if (result) {
         if (result.errors) {
           errors.push(...result.errors);
@@ -2112,6 +2150,14 @@ class TimelineParser {
 
     return { errors, frames };
   }
+
+  loadFromInput(input) {
+    const { errors, frames } = Timeline.parse(input);
+    if (errors.length) {
+      throw new Error(errors.join('\n'));
+    }
+    frames.forEach(({ time, color }) => this.addFrame(time, color));
+  }
 }
 
 // Update the AnimationController class
@@ -2120,10 +2166,11 @@ class AnimationController {
     this.element = element;
     this.timerDisplay = timerDisplay;
     this.timeline = null;
-    this.startTime = 0;
-    this.lastFrameTime = 0;
+    this.startTimeStamp = 0;
+    this.lastFrameTimeStamp = 0;
     this.animationFrame = null;
-    this.pausedTime = 0;
+    this.pausedTimeStamp = 0;
+    this.audioCurrentTimeStamp = 0;
     this.isPaused = false;
     this.colorInfoTemplate = document.createElement('div');
     this.colorInfoTemplate.className = 'color-info';
@@ -2137,12 +2184,12 @@ class AnimationController {
   start() {
     if (this.isPaused) {
       // Resume from paused state
-      this.startTime = performance.now() - this.pausedTime;
+      this.startTimeStamp = performance.now() - this.pausedTimeStamp;
       this.isPaused = false;
     } else {
       // Start fresh
       this.reset();
-      this.startTime = performance.now();
+      this.startTimeStamp = performance.now();
     }
     this.animate();
   }
@@ -2151,7 +2198,7 @@ class AnimationController {
     if (!this.isPaused && this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
-      this.pausedTime = performance.now() - this.startTime;
+      this.pausedTimeStamp = performance.now() - this.startTimeStamp;
       this.isPaused = true;
     }
   }
@@ -2173,9 +2220,9 @@ class AnimationController {
   }
 
   reset() {
-    this.startTime = 0;
-    this.lastFrameTime = 0;
-    this.pausedTime = 0;
+    this.startTimeStamp = 0;
+    this.lastFrameTimeStamp = 0;
+    this.pausedTimeStamp = 0;
     this.isPaused = false;
     this.element.style.backgroundColor = 'var(--surface-secondary';
     this.element.innerHTML = '';
@@ -2224,19 +2271,51 @@ class AnimationController {
     this.element.appendChild(fragment);
   }
 
-  animate(currentTime = 0) {
+  // animate(currentTime = 0) {
+  //   if (this.isPaused) return;
+
+  //   // Frame throttling for performance
+  //   if (this.lastFrameTime && currentTime - this.lastFrameTime < 16) {
+  //     this.animationFrame = requestAnimationFrame((time) => this.animate(time));
+  //     return;
+  //   }
+  //   this.lastFrameTime = currentTime;
+
+  //   const elapsed = currentTime - this.startTime;
+  //   this.updateDisplay(elapsed);
+
+  //   const frame = this.timeline?.getFrameAtTime(elapsed);
+  //   if (frame) {
+  //     const hexColor = ColorConfig.getColorCode(frame.color);
+  //     if (hexColor) {
+  //       this.element.style.backgroundColor = hexColor;
+  //       this.updateColorInfo(frame.color, hexColor, frame.time);
+  //     }
+  //   }
+
+  //   if (elapsed <= this.timeline.getDuration() + 1000) {
+  //     this.animationFrame = requestAnimationFrame((time) => this.animate(time));
+  //   } else {
+  //     this.stop();
+  //   }
+  // }
+
+  animate(currentTimeStamp = 0) {
     if (this.isPaused) return;
 
-    // Frame throttling for performance
-    if (this.lastFrameTime && currentTime - this.lastFrameTime < 16) {
+    // 防止过于频繁地更新，控制帧率 (大约 60FPS)
+    if (this.lastFrameTimeStamp && currentTimeStamp - this.lastFrameTimeStamp < 16) {
       this.animationFrame = requestAnimationFrame((time) => this.animate(time));
       return;
     }
-    this.lastFrameTime = currentTime;
+    this.lastFrameTimeStamp = currentTimeStamp;
 
-    const elapsed = currentTime - this.startTime;
+    const elapsed = this.audioCurrentTimeStamp;
+
+    // 更新显示，显示经过的时间
     this.updateDisplay(elapsed);
 
+    // 获取当前时间点的动画帧
     const frame = this.timeline?.getFrameAtTime(elapsed);
     if (frame) {
       const hexColor = ColorConfig.getColorCode(frame.color);
@@ -2246,6 +2325,7 @@ class AnimationController {
       }
     }
 
+    // 如果音频和动画还未结束，继续更新
     if (elapsed <= this.timeline.getDuration() + 1000) {
       this.animationFrame = requestAnimationFrame((time) => this.animate(time));
     } else {
@@ -2257,6 +2337,24 @@ class AnimationController {
     this.timerDisplay.textContent = `[${formatTimestamp(time, 'mm:ss:ms')}] => ${Math.floor(
       time,
     )}ms `;
+  }
+
+  updateAnimation(currentTime) {
+    // 根据当前时间更新动画的状态
+    const frame = this.timeline?.getFrameAtTime(currentTime);
+    if (frame) {
+      const color = ColorConfig.getColorCode(frame.color);
+      if (color) {
+        this.element.style.backgroundColor = color;
+        this.updateColorInfo(frame.color, color, frame.time);
+      }
+    }
+  }
+
+  updateProgress(audioCurrentTimeStamp) {
+    console.log('audioCurrentTimeStamp: ', audioCurrentTimeStamp);
+    this.audioCurrentTimeStamp = audioCurrentTimeStamp;
+    this.animate();
   }
 }
 
@@ -2432,13 +2530,55 @@ class AudioVisualizer {
   }
 }
 
+class waveSurferController {
+  constructor(audioElement) {
+    this.audio = audioElement;
+    this.setupWavesurfer();
+  }
+
+  setupWavesurfer() {
+    // Initialize Wavesurfer.js
+    this.wavesurfer = WaveSurfer.create({
+      container: '#wavesurfer_color_preview',
+      media: this.audio,
+      responsive: true,
+      normalize: false,
+      interact: true,
+      mediaControls: false,
+    });
+
+    this.wavesurfer.on('ready', () => {
+      this.visualizerReady = true;
+    });
+  }
+
+  loadAudio(url) {
+    this.wavesurfer.load(url);
+  }
+
+  start() {
+    if (this.visualizerReady) {
+      this.wavesurfer.play();
+    }
+  }
+
+  stop() {
+    if (this.visualizerReady) {
+      this.wavesurfer.pause();
+    }
+  }
+}
+
 // Audio handling class
 class AudioController {
-  constructor() {
+  constructor(animationController) {
     this.audio = new Audio();
-    this.visualizer = null;
+    this.waveSurferController = null;
     this.isAudioLoaded = false;
-    this.syncedWithTimeline = false;
+    this.syncedWithTimeline = true;
+    this.isDraggingProgress = false;
+    this.animationController = animationController || null;
+    this.visualizer = null;
     this.setupAudioElements();
     this.setupEventListeners();
   }
@@ -2465,11 +2605,6 @@ class AudioController {
     this.audio.addEventListener('timeupdate', () => this.updateTimeDisplay());
     this.audio.addEventListener('ended', () => this.handleAudioEnded());
 
-    // Progress bar handling with improved sync
-    this.audioProgress.addEventListener('mousedown', () => {
-      this.audio.pause();
-    });
-
     // Timeline slider control
     this.audioProgress.addEventListener('input', (e) => {
       if (this.audio && !isNaN(this.audio.duration) && this.audio.duration > 0) {
@@ -2491,17 +2626,51 @@ class AudioController {
         });
       }
     });
-    this.audioProgress.addEventListener('mouseup', () => {
-      // Only play if audio was previously playing
-      if (!this.audio.paused) {
-        this.audio.play();
+
+    // Progress bar handling with improved sync
+    this.audioProgress.addEventListener('mousedown', (e) => {
+      this.isDraggingProgress = true;
+      this.handleProgressChange(e);
+    });
+
+    this.audioProgress.addEventListener('mousemove', (e) => {
+      if (this.isDraggingProgress) {
+        this.handleProgressChange(e);
       }
     });
+
+    this.audioProgress.addEventListener('mouseup', (e) => {
+      this.isDraggingProgress = false;
+      this.handleProgressChange(e);
+    });
+
     // Add volume control listener
     const volumeControl = document.getElementById('volumeControl');
     if (volumeControl) {
       volumeControl.addEventListener('input', (e) => {
         this.setVolume(e.target.value / 100);
+      });
+    }
+  }
+
+  handleProgressChange(e) {
+    if (this.audio && !isNaN(this.audio.duration) && this.audio.duration > 0) {
+      const percentage = parseFloat(e.target.value) / 100;
+      const newTime = percentage * this.audio.duration;
+
+      if (isFinite(newTime) && newTime >= 0) {
+        this.audio.currentTime = newTime;
+        this.updateTimeDisplay();
+      } else {
+        showNotification('播放出错', '检测到无效的时间位置.', {
+          type: 'error',
+          duration: 3000,
+        });
+      }
+    } else {
+      showNotification('音频未就绪', '请确保音频文件已正确加载。', {
+        type: 'warning',
+        duration: 3000,
       });
     }
   }
@@ -2529,7 +2698,12 @@ class AudioController {
     // this.audioControls.className = '';
     this.updateControlButtons(true);
 
-    // Initialize visualizer after loading audio
+    // // Initialize visualizer after loading audio
+    if (!this.waveSurferController) {
+      this.waveSurferController = new waveSurferController(this.audio);
+    }
+    this.waveSurferController.loadAudio(url);
+
     if (!this.visualizer) {
       this.visualizer = new AudioVisualizer(this.audio);
     }
@@ -2541,13 +2715,27 @@ class AudioController {
   }
 
   updateTimeDisplay() {
+    // const currentTime = this.audio.currentTime;
+    // const duration = this.audio.duration;
+    // const currentProgressValue = ((currentTime / duration) * 100).toFixed(2);
+    // this.currentTimeDisplay.textContent = this.formatTime(currentTime);
+    // this.totalTimeDisplay.textContent = this.formatTime(duration);
+    // this.currentPer.textContent = currentProgressValue + '%';
+    // this.audioProgress.value = currentProgressValue;
+
     const currentTime = this.audio.currentTime;
     const duration = this.audio.duration;
-    const currentProgressValue = ((currentTime / duration) * 100).toFixed(2);
+    const percent = ((currentTime / duration) * 100).toFixed(2);
+
     this.currentTimeDisplay.textContent = this.formatTime(currentTime);
     this.totalTimeDisplay.textContent = this.formatTime(duration);
-    this.currentPer.textContent = currentProgressValue + '%';
-    this.audioProgress.value = currentProgressValue;
+    this.currentPer.textContent = `${percent}%`;
+    this.audioProgress.value = percent;
+
+    // Sync AnimationController with audio progress
+    if (this.syncedWithTimeline && this.animationController) {
+      this.animationController.updateProgress(this.audio.currentTime * 1000);
+    }
   }
 
   handleAudioEnded() {
@@ -2627,7 +2815,7 @@ class AudioController {
         this.seekTo(startFromTime);
       }
       this.audio.play();
-      this.visualizer?.start();
+      this.waveSurferController?.start();
     }
   }
 
@@ -2635,27 +2823,27 @@ class AudioController {
     if (!this.isAudioLoaded) return;
     this.audio.currentTime = 0; // Reset to start
     this.play();
-    this.visualizer?.start();
+    this.waveSurferController?.start();
     this.updateControlButtons(true);
   }
 
   syncWithControls_pause() {
     if (!this.isAudioLoaded) return;
     this.audio.pause();
-    this.visualizer?.stop();
+    this.waveSurferController?.stop();
   }
 
   syncWithControls_resume() {
     if (!this.isAudioLoaded) return;
     this.play();
-    this.visualizer?.start();
+    this.waveSurferController?.start();
   }
 
   syncWithControls_stop() {
     if (!this.isAudioLoaded) return;
     this.audio.pause();
     this.audio.currentTime = 0;
-    this.visualizer?.stop();
+    this.waveSurferController?.stop();
     this.updateTimeDisplay();
     this.audioProgress.value = 0;
     this.currentPer.textContent = '0%';
@@ -2666,14 +2854,14 @@ class AudioController {
     this.audio.currentTime = 0;
     this.currentPer.textContent = '0%';
     this.play();
-    this.visualizer?.start();
+    this.waveSurferController?.start();
   }
 
   syncWithControls_clear() {
     if (!this.isAudioLoaded) return;
     this.audio.pause();
     this.audio.currentTime = 0;
-    this.visualizer?.stop();
+    this.waveSurferController?.stop();
     this.isAudioLoaded = false;
     this.audio.src = '';
     this.audioFileName.textContent = '';
@@ -2775,7 +2963,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize controller
   const animationController = new AnimationController(elements.colorElement, elements.timerDisplay);
   // Initialize audio controller
-  const audioController = new AudioController();
+  const audioController = new AudioController(animationController);
   // Add listener for animation stopped event
   elements.colorElement.addEventListener('animationStopped', () => {
     updateButtonStates(false, false);
@@ -2809,7 +2997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const { errors, frames } = TimelineParser.parse(elements.input.value);
+    const { errors, frames } = Timeline.parse(elements.input.value);
     if (errors.length) {
       showNotification(
         '时间轴内容检查 ⚠️',
@@ -3004,6 +3192,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Add error handling
   window.addEventListener('error', (event) => {
+    if (event.message.indexOf('Script Error')) return console.log(event);
     if (errorCount >= maxErrors) {
       showNotification(
         '频繁错误',
@@ -3094,6 +3283,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
 
     my_debugger.showError('Error occurred:', errorDetails);
+    const modalBackdrop = document.querySelector('.modal-backdrop.fade.show');
+    modalBackdrop?.remove();
     return handleStop();
   });
 
@@ -3216,7 +3407,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
           <div class="modal-body">
               <h6>制作者<a
-                  href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
+                  href="https://www.xiaohongshu.com/user/profile/5c1610720000000005018c49"
                   target="_blank">（小红书@那一转眼只剩我🥕)</a>留言：</h6>
               <p>本工具旨在帮助五月天演唱会的观众和组织者轻松生成荧光棒的控制代码，实现更加炫酷的灯光效果。通过简单的配置，你可以生成自定义的荧光棒控制代码，并在实时预览中查看基础效果。生成算法还在持续优化!本工具还在迭代!<br>感谢<a
                       href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
