@@ -2,7 +2,7 @@
  * @Author: freysu
  * @Date: 2024-11-21 04:20:51
  * @LastEditors: freysu
- * @LastEditTime: 2024-11-25 12:18:01
+ * @LastEditTime: 2024-11-25 23:29:04
  * @Description: file content
 -->
 <!DOCTYPE html>
@@ -19,18 +19,45 @@
     <title>Mayday.Blue 预设工具</title>
     <!-- Bootstrap 5 CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet" />
-    <!-- Material Icons -->
-    <!-- <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" /> -->
-    <!-- Google Fonts -->
-    <!-- <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap"
-      rel="stylesheet"
-    /> -->
     <link href="css/atom-one-dark.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="css/style.min.css" />
   </head>
   <body>
     <div class="app-wrapper d-flex flex-column min-vh-100">
+      <!-- Loading Spinner (in HTML body, visible during loading) -->
+      <div
+        id="loadingOverlay"
+        class="loading-overlay"
+        style="
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 9998;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        "
+      >
+        <div
+          class="d-flex justify-content-center align-items-center"
+          style="
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            z-index: 9999;
+            transform: translate(-50%, -50%);
+          "
+          id="loadingSpinner"
+        >
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Header -->
       <header class="app-header py-3">
         <div class="container">
@@ -58,39 +85,55 @@
                   预设代码可视化
                 </button>
               </li>
-              <li class="nav-item"></li>
             </ul>
-            <div class="dropdown">
-              <button
-                class="btn btn-secondary dropdown-toggle"
-                type="button"
-                id="themeDropdown"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                外观
-              </button>
-              <ul class="dropdown-menu" aria-labelledby="themeDropdown">
-                <li>
-                  <button class="dropdown-item" data-bs-theme-value="light">
-                    <i class="material-icons">sunny</i>
-                    浅色
+            <ul class="nav nav-tabs mb-0" role="tablist">
+              <li class="nav-item">
+                <a
+                  class="btn btn-outline-danger rounded-pill"
+                  href="https://sx5w7odpp7p.feishu.cn/docx/IcuIdkFKJofwhsxfW4GcVdGSnQd"
+                  target="_blank"
+                  id="openHelperPage"
+                  title="使用帮助"
+                >
+                  <i class="material-icons">help</i>
+                  <b>使用帮助</b>
+                </a>
+              </li>
+              <li class="nav-item">
+                <div class="dropdown">
+                  <button
+                    class="btn btn-secondary dropdown-toggle"
+                    type="button"
+                    id="themeDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    <i class="material-icons">settings</i>
+                    <b>外观</b>
                   </button>
-                </li>
-                <li>
-                  <button class="dropdown-item" data-bs-theme-value="dark">
-                    <i class="material-icons">nights_stay</i>
-                    暗黑
-                  </button>
-                </li>
-                <li>
-                  <button class="dropdown-item" data-bs-theme-value="auto">
-                    <i class="material-icons">brightness_auto</i>
-                    自动
-                  </button>
-                </li>
-              </ul>
-            </div>
+                  <ul class="dropdown-menu" aria-labelledby="themeDropdown">
+                    <li>
+                      <button class="dropdown-item" data-bs-theme-value="light">
+                        <i class="material-icons">sunny</i>
+                        浅色
+                      </button>
+                    </li>
+                    <li>
+                      <button class="dropdown-item" data-bs-theme-value="dark">
+                        <i class="material-icons">nights_stay</i>
+                        暗黑
+                      </button>
+                    </li>
+                    <li>
+                      <button class="dropdown-item" data-bs-theme-value="auto">
+                        <i class="material-icons">brightness_auto</i>
+                        自动
+                      </button>
+                    </li>
+                  </ul>
+                </div>
+              </li>
+            </ul>
           </div>
         </div>
       </header>
@@ -556,7 +599,16 @@
                               <div id="baseColorContainer"></div>
                             </div>
                             <!-- Dynamic Color Sections -->
-                            <div class="mb-3" id="colorSections">动态颜色配置区正在加载中...</div>
+                            <div class="mb-3" id="colorSections">
+                              <div
+                                id="loadingSpinner"
+                                class="spinner-border text-primary"
+                                role="status"
+                              >
+                                <span class="visually-hidden">动态颜色配置区正在加载中...</span>
+                              </div>
+                              动态颜色配置区正在加载中...
+                            </div>
                           </form>
                         </div>
                       </div>
@@ -570,13 +622,7 @@
                       >
                         <h2 class="h5 w-100">输出结果</h2>
                         <div class="flex-shrink-1 text-end">
-                          <button
-                            class="btn btn-outline-primary btn-sm"
-                            id="copy-btn"
-                            data-bs-toggle="tooltip"
-                            data-bs-placement="top"
-                            title="Tooltip on top"
-                          >
+                          <button class="btn btn-outline-primary btn-sm" id="copy-btn">
                             <i class="material-icons me-2">content_copy</i>
                             复制
                           </button>
@@ -1114,11 +1160,11 @@
     <script src="original_src/bootstrap.bundle.min.js" defer></script>
     <script src="original_src/mousetrap.min.js" defer></script>
     <script src="original_src/highlight.min.js" defer></script>
-    <script
+    <!-- <script
       src="https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.min.js"
       crossorigin="anonymous"
       defer
-    ></script>
+    ></script> -->
     <script src="webpack_dist/bundle.js" defer></script>
   </body>
 </html>

@@ -522,7 +522,7 @@ class ThemeConfigForm {
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="text-capitalize mb-0">${section} Colors</h6>
                 <button type="button" class="btn btn-sm btn-outline-primary add-color-btn" data-section="${section}">
-                    <i class="material-icons">add</i>➕
+                    <i class="material-icons">add</i>添加颜色
                 </button>
             </div>
             <div id="${section}Colors" class="color-items">
@@ -565,7 +565,7 @@ class ThemeConfigForm {
                 <button type="button" class="btn btn-xs btn-outline-danger remove-color-btn"
                         data-section="${section}"
                         data-index="${index}">
-                    <i class="material-icons">delete</i>➖
+                    <i class="material-icons">delete</i>删除
                 </button>
             </div>
         `;
@@ -947,8 +947,7 @@ function convertTime(string) {
  * generate-tool
  */
 
-import { parseBlob, parseBuffer } from 'music-metadata';
-import sentimentAnalyzer from './sentiment-zh_cn_web.min.js';
+import { guess } from 'web-audio-beat-detector';
 class AudioAnalyzer {
   constructor() {
     this.state = {
@@ -1067,43 +1066,6 @@ class AudioAnalyzer {
     });
   }
 
-  async getMetadata(filePath) {
-    console.log('filePath: ', filePath);
-    try {
-      let metadata = {};
-      // const isIOSDevice = /iPad|iPhone|iPod/.test(window.navigator.userAgent) && !window.MSStream;
-      metadata = await parseBlob(filePath);
-
-      const bpm = metadata.common.bpm || 120;
-      const format = metadata.format || {};
-      const sampleRate = format.sampleRate || 44100;
-      const bitrate = format.bitrate || 128000;
-      const duration = format.duration || 0;
-      // Success notification with audio details
-      showNotification(
-        '音频解析完成！🎵',
-        `找到 ${bpm} BPM，时长: ${this.formatDuration(duration)} `,
-        {
-          type: 'success',
-          duration: 4000,
-        },
-      );
-
-      return { bpm, sampleRate, bitrate, duration };
-    } catch (error) {
-      // let browserInfo = await window.browser.getInfo();
-      // Error notification for failed analysis
-      showNotification('音频解析问题 🎧', '无法解析这个音频文件。请尝试不同的格式。', {
-        type: 'error',
-        duration: 5000,
-        dismissible: true,
-      });
-      // console.error(JSON.stringify(browserInfo, null, 2));
-      my_debugger.showError(`Error parsing metadata for file ${filePath}: ${error}`);
-      throw error;
-    }
-  }
-
   checkFileFormat(file) {
     // prettier-ignore
     const supportedFormats = ['.aac','.flac','.mp3', '.wav', '.ogg', '.m4a'];
@@ -1122,6 +1084,139 @@ class AudioAnalyzer {
       return false;
     }
     return true;
+  }
+
+  async getMetadata(audioBuffer) {
+    try {
+      // 使用 web-audio-beat-detector 分析 BPM 和节奏偏移
+      const { bpm, offset } = await guess(audioBuffer);
+
+      // 假设其他元数据无法从 web-audio-beat-detector 中获取，设置默认值
+      const sampleRate = audioBuffer.sampleRate || 44100;
+      const duration = audioBuffer.duration || 0;
+
+      showNotification(
+        '音频解析完成！🎵',
+        `找到 ${bpm} BPM，时长: ${this.formatDuration(duration)}，偏移: ${offset.toFixed(2)} 秒`,
+        {
+          type: 'success',
+          duration: 4000,
+        },
+      );
+      console.log({ bpm, sampleRate, duration, offset });
+
+      return { bpm, sampleRate, duration, offset };
+    } catch (error) {
+      if (error.message.includes('Cannot use a BYOB reader with a non-byte stream')) {
+        showNotification(
+          '浏览器不支持 🚀',
+          '当前浏览器不支持此功能，请尝试使用 Chrome 或 Firefox 浏览器。',
+          {
+            type: 'error',
+            duration: 5000,
+            modal: true,
+            html: false,
+            dismissible: true,
+          },
+        );
+      } else {
+        showNotification('音频解析问题 🎧', '无法解析这个音频文件。请尝试不同的格式。', {
+          type: 'error',
+          duration: 5000,
+          dismissible: true,
+        });
+      }
+      my_debugger.showError(`Error parsing metadata: ${error.message}`, error);
+      throw error;
+    }
+  }
+
+  async handleAudioFileSelect(event) {
+    const file = event.target.files[0];
+
+    if (!file || !this.checkFileFormat(file)) return;
+
+    try {
+      // 初始化 AudioContext
+      if (this.state.audioContext) {
+        await this.cleanup();
+      }
+      this.state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+      // 将音频文件转换为 ArrayBuffer 并解码为 AudioBuffer
+      const arrayBuffer = await file.arrayBuffer();
+      this.state.audioBuffer = await this.state.audioContext.decodeAudioData(arrayBuffer);
+
+      // 使用 web-audio-beat-detector 获取元数据
+      this.state.metadata = await this.getMetadata(this.state.audioBuffer);
+
+      // 更新 UI
+      this.updateFileInfo('audioFileInfo', file, this.state.metadata);
+      this.updateAnalyzeButtonState();
+      showNotification('成功', '音频文件加载成功', {
+        type: 'success',
+        duration: 3000,
+      });
+      document.getElementById('processing').classList.remove('d-none');
+      this.showStatusNotStarted();
+    } catch (error) {
+      document.getElementById('processing').classList.add('d-none');
+      showNotification('错误', `加载音频文件出错：${error.message}`, {
+        type: 'error',
+        duration: 5000,
+      });
+      my_debugger.showError(`Error loading audio file: ${error.message}`, error);
+    }
+  }
+
+  /*
+
+  async getMetadata(filePath) {
+    console.log('filePath: ', filePath);
+    try {
+      let metadata = {};
+      metadata = await parseBlob(filePath); // music-metadata library method: parseBlob(...)
+
+      const bpm = metadata.common.bpm || 120;
+      const format = metadata.format || {};
+      const sampleRate = format.sampleRate || 44100;
+      const bitrate = format.bitrate || 128000;
+      const duration = format.duration || 0;
+
+      showNotification(
+        '音频解析完成！🎵',
+        `找到 ${bpm} BPM，时长: ${this.formatDuration(duration)}`,
+        {
+          type: 'success',
+          duration: 4000,
+        },
+      );
+
+      return { bpm, sampleRate, bitrate, duration };
+    } catch (error) {
+      // music-metadata 对于某些浏览器不支持
+      if (error.message.includes('Cannot use a BYOB reader with a non-byte stream')) {
+        showNotification(
+          '浏览器不支持 🚀',
+          '当前浏览器不支持此功能，请尝试使用 Chrome 或 Firefox 浏览器。',
+          {
+            type: 'error',
+            duration: 5000,
+            modal: true,
+            html: false,
+            dismissible: true,
+          },
+        );
+      } else {
+        showNotification('音频解析问题 🎧', '无法解析这个音频文件。请尝试不同的格式。', {
+          type: 'error',
+          duration: 5000,
+          dismissible: true,
+        });
+      }
+      my_debugger.showError(`Error parsing metadata for file ${filePath}: ${error}`);
+      throw error;
+    }
   }
 
   async handleAudioFileSelect(event) {
@@ -1157,6 +1252,8 @@ class AudioAnalyzer {
       my_debugger.showError(`Error loading audio file: ${error.message}`, error);
     }
   }
+
+  */
 
   async handleLrcFileSelect(event) {
     const file = event.target.files[0];
@@ -1404,6 +1501,7 @@ class AudioAnalyzer {
 
   async generateColorSequence(intervalMultiplier = 1) {
     try {
+      const offset = this.state.metadata.offset || 0; // 偏移时间（秒）
       const bpm = this.state.metadata.bpm || 120;
       const totalDuration = this.state.metadata.duration || 0;
 
@@ -1427,7 +1525,14 @@ class AudioAnalyzer {
 
       // Setup
       const interval = (60 / bpm) * 1000 * intervalMultiplier; // milliseconds
-      const totalIntervals = Math.ceil((totalDuration * 1000) / interval);
+      // const totalIntervals = Math.ceil((totalDuration * 1000) / interval);
+      const totalIntervals = Math.ceil(((totalDuration - offset) * 1000) / interval);
+
+      let sentimentAnalyzer = {};
+      if (this.state.lyrics) {
+        sentimentAnalyzer = sentimentAnalyzer = (await import('./sentiment-zh_cn_web.min.js'))
+          .default;
+      }
       const sortedLyrics = this.state.lyrics
         ? this.state.lyrics.scripts.sort((a, b) => a.start - b.start)
         : [];
@@ -1436,22 +1541,28 @@ class AudioAnalyzer {
 
       const timelineData = [];
       let currentIndex = 0;
-
+      //import sentimentAnalyzer from './sentiment-zh_cn_web.min.js';
       const processChunk = async (startIndex) => {
         try {
           const chunkSize = 100; // Process 100 intervals at a time
           for (let i = startIndex; i < startIndex + chunkSize && i < totalIntervals; i++) {
-            const currentTime = (i * interval) / 1000;
+            // const currentTime = (i * interval) / 1000;
+            const currentTime = offset + (i * interval) / 1000;
             const normalizedTime = 100 * Math.round(10 * currentTime);
 
             console.log(
               `Processing time: ${currentTime}s, Normalized: ${normalizedTime}, Total Duration: ${totalDuration}s`,
             );
 
-            // Check if current time exceeds total duration
-            if (currentTime >= totalDuration) {
-              console.log(`Reached end of audio duration at ${currentTime}s`);
-              return;
+            // // Check if current time exceeds total duration
+            // if (currentTime >= totalDuration) {
+            //   console.log(`Reached end of audio duration at ${currentTime}s`);
+            //   return;
+            // }
+
+            if (currentTime < offset || currentTime >= totalDuration) {
+              console.log(`Skipping out-of-range time: ${currentTime}s`);
+              continue;
             }
 
             const currentLyric = sortedLyrics.find(
@@ -2941,6 +3052,21 @@ window.addEventListener('load', () => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
+  //https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.min.js
+  const loadScripts_segmentit = (src) => {
+    const script = document.createElement('script');
+    script.src = src;
+    script.defer = true;
+    script.crossOrigin = 'anonymous';
+    script.onload = () => {
+      console.log('Script loaded successfully!');
+      document.getElementById('loadingOverlay').style.display = 'none'; // 隐藏加载动画
+    };
+    document.body.appendChild(script);
+  };
+
+  loadScripts_segmentit('https://cdn.jsdelivr.net/npm/segmentit@2.0.3/dist/umd/segmentit.min.js');
+
   // Cache DOM elements
   const elements = {
     colorElement: document.getElementById('colorElement'),
@@ -3398,54 +3524,75 @@ document.addEventListener('DOMContentLoaded', async () => {
     my_debugger.showError('Highlight.js not found. Skipping code highlighting.');
   }
 
-  showModalNotification(
-    '公告📢 - 2024/11/23 15:20',
-    `
+  const ANNOUNCEMENT_CONTENT_backup = `<h6>制作者<a
+  href="https://www.xiaohongshu.com/user/profile/5c1610720000000005018c49"
+  target="_blank">（小红书@那一转眼只剩我🥕)</a>留言：</h6>
+<p>本工具旨在帮助五月天演唱会的观众和组织者轻松生成荧光棒的控制代码，实现更加炫酷的灯光效果。通过简单的配置，你可以生成自定义的荧光棒控制代码，并在实时预览中查看基础效果。生成算法还在持续优化!本工具还在迭代!<br>感谢<a
+      href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
+      target="_blank">小红书@Diu🥕</a>大佬开发的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>小程序!
+</p>
+
+<h6>网站功能简介：</h6>
+<ul>
+  <li><strong>生成工具🎨：</strong>提供你想做预设的音频文件,轻松配置荧光棒的颜色主题并生成 <strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong> 场控预设代码。</li>
+  <li><strong>实时预览👀：</strong>可以把生成的预设代码添加进来，实时展示荧光棒使用到的电脑颜色效果。</li>
+</ul>
+
+<h6>功能详细介绍：</h6>
+<ul>
+  <li>生成工具🎨：请看<strong>预设代码生成器</strong>选项卡的使用指南</li>
+  <li>实时预览👀：请看<strong>预设可视化工具</strong>选项卡的使用指南</li>
+</ul>
+
+<h6>重要细节：</h6>
+<ul>
+  <li>生成的代码可以直接复制并粘贴到你的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>中。</li>
+  <li>支持导出和导入颜色主题配置，方便保存和分享创意。</li>
+</ul>`;
+
+  // 检查是否为新用户
+  if (!localStorage.getItem('isNewUser')) {
+    try {
+      showModalNotification(
+        '公告📢 - 2024/11/23 15:20',
+        `
       <div class="card shadow-sm mb-4">
-          <div class="card-header">
-              <h2 class="modal-title" id="announcementModalLabel">欢迎wmls来玩!</h2>
-          </div>
-          <div class="modal-body">
-              <h6>制作者<a
-                  href="https://www.xiaohongshu.com/user/profile/5c1610720000000005018c49"
-                  target="_blank">（小红书@那一转眼只剩我🥕)</a>留言：</h6>
-              <p>本工具旨在帮助五月天演唱会的观众和组织者轻松生成荧光棒的控制代码，实现更加炫酷的灯光效果。通过简单的配置，你可以生成自定义的荧光棒控制代码，并在实时预览中查看基础效果。生成算法还在持续优化!本工具还在迭代!<br>感谢<a
-                      href="https://www.xiaohongshu.com/user/profile/5d7e751900000000010010bd"
-                      target="_blank">小红书@Diu🥕</a>大佬开发的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>小程序!
-              </p>
-  
-              <h6>网站功能简介：</h6>
-              <ul>
-                  <li><strong>生成工具🎨：</strong>提供你想做预设的音频文件,轻松配置荧光棒的颜色主题并生成 <strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong> 场控预设代码。</li>
-                  <li><strong>实时预览👀：</strong>可以把生成的预设代码添加进来，实时展示荧光棒使用到的电脑颜色效果。</li>
-              </ul>
-  
-              <h6>功能详细介绍：</h6>
-              <ul>
-                  <li>生成工具🎨：请看<strong>预设代码生成器</strong>选项卡的使用指南</li>
-                  <li>实时预览👀：请看<strong>预设可视化工具</strong>选项卡的使用指南</li>
-              </ul>
-  
-              <h6>重要细节：</h6>
-              <ul>
-                  <li>生成的代码可以直接复制并粘贴到你的<strong><code style="font-family: 'Lato', sans-serif;">Mayday.Blue</code></strong>中。</li>
-                  <li>支持导出和导入颜色主题配置，方便保存和分享创意。</li>
-              </ul>
-  
-              <h6>演示视频链接：</h6>
-              <p>观看演示视频，了解更多使用技巧：<a href="https://example.com/demo-video" target="_blank">点击这里</a></p>
-  
-              <h6>用户交流群信息：</h6>
-              <p>加入我们的用户交流群，与其他用户交流经验和技巧：<a href="https://example.com/user-group" target="_blank">点击这里</a></p>
-          </div>
+        <div class="card-header">
+          <h2 class="modal-title" id="announcementModalLabel">欢迎wmls来玩!</h2>
+        </div>
+        <div class="modal-body">
+          <iframe id="myIframe" src="https://sx5w7odpp7p.feishu.cn/docx/IcuIdkFKJofwhsxfW4GcVdGSnQd" width="100%" height="600px"></iframe>
+        </div>
       </div>
-    `,
-    {
-      type: 'info',
-      size: 'large',
-      buttons: [],
-      html: true,
-      dismissible: true,
-    },
-  );
+      `,
+        {
+          type: 'info',
+          size: 'large',
+          buttons: [
+            {
+              text: '不再提示',
+              class: 'btn btn-primary',
+              onClick: () => {
+                // 存储用户选择不再提示
+                localStorage.setItem('isNewUser', 'false');
+              },
+            },
+          ],
+          html: true,
+          dismissible: true,
+        },
+      );
+      // 确保 iframe 加载完成后再显示通知
+      const iframe = document.getElementById('myIframe');
+      if (iframe) {
+        iframe.onload = () => {
+          // 模态通知已经显示，无需额外操作
+        };
+      }
+    } catch (error) {
+      console.error('显示公告时发生错误:', error);
+      document.querySelector('#notificationModal .modal-body').innerHTML =
+        ANNOUNCEMENT_CONTENT_backup;
+    }
+  }
 });

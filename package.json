@@ -21,8 +21,8 @@
   },
   "dependencies": {
     "lodash.assign": "v4.1.0",
-    "music-metadata": "^10.6.0",
-    "segmentit": "2.0.3"
+    "segmentit": "2.0.3",
+    "web-audio-beat-detector": "^8.2.19"
   },
   "keywords": [],
   "author": "",
